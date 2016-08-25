@@ -121,10 +121,20 @@ main : {
     my @ranked_classes = sort {$classes{$a}<=>$classes{$b}} keys %classes;
 
     my $Rcmd = "";
-    if ($num_classes == 4) {
+    
+    if ($num_classes == 2) {
+        $Rcmd = &draw_pairwise(\@counts, \@ranked_classes);
+    }
+    elsif ($num_classes == 3) {
+        $Rcmd = &draw_triple(\@counts, \@ranked_classes);
+    }
+    elsif ($num_classes == 4) {
         $Rcmd = &draw_quad(\@counts, \@ranked_classes);
     }
-
+    else {
+        die "Error, no venn available for [$num_classes] sets\n";
+    }
+    
     my $rscript = "__tmp.vennDiag$num_classes.Rscript";
     open(my $ofh, ">$rscript") or die $!;
     print $ofh "library(VennDiagram)\n";
@@ -141,6 +151,33 @@ main : {
     
     exit(0);
 }
+
+
+####
+sub draw_pairwise {
+    my ($counts_aref, $classes_aref) = @_;
+    
+    my $cmd = "draw.pairwise.venn(" . join(",", @$counts_aref)
+        . ", category=c(\'" . join("\',\'", @$classes_aref) . "\')"
+        . ", fill = c('skyblue', 'mediumorchid') )\n";
+    
+    return($cmd);
+}
+
+
+
+
+####
+sub draw_triple {
+    my ($counts_aref, $classes_aref) = @_;
+    
+    my $cmd = "draw.triple.venn(" . join(",", @$counts_aref)
+        . ", category=c(\'" . join("\',\'", @$classes_aref) . "\')"
+        . ", fill = c('skyblue', 'mediumorchid', 'orange' ) )\n";
+    
+    return($cmd);
+}
+
 
 ####
 sub draw_quad {
