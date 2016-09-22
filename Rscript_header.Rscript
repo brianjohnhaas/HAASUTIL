@@ -1,0 +1,18 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) == 0) {
+	stop("require param: dat_filename")
+}
+
+
+dat_filename = args[1]
+
+
+
+
+write(cat("message about varname: :", varname), stderr())
+
+quit(save = "no", status = 0, runLast = FALSE)
+
