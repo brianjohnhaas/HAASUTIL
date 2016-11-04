@@ -6,7 +6,7 @@ parser = ArgumentParser()
 parser$add_argument("--matrix", help="Rdata file", required=TRUE)
 parser$add_argument("--min_rowcounts", type="integer", help="max number of genes per cell (remove doublets)", required=TRUE)
 parser$add_argument("--min_gene_prevalence", type="integer", help="min number of cells a gene must be expressed in", required=TRUE)
-parser$add_argument("--data_start_row_index", type="integer", help="column at which cell counts begin (gene field at column zero)", default=1)
+parser$add_argument("--data_start_col_index", type="integer", help="column at which cell counts begin (gene field at column zero)", default=1)
 
 
 args = parser$parse_args()
@@ -14,9 +14,10 @@ args = parser$parse_args()
 data = read.table(file=args$matrix, sep="\t", row.names=1, header=T)
 
 # trim out the metadata columns we dont want.
-if (args$data_start_row_index > 1) {
-    x = nrow(data)
-    data = data[args$data_start_row_index:x,]
+if (args$data_start_col_index > 1) {
+	message("removing columns 1-", args$data_start_col_index)
+    x = ncol(data)
+    data = data[,args$data_start_col_index:x,]
 }
 
 data = data.matrix(data)
