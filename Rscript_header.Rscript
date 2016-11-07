@@ -10,9 +10,21 @@ if (length(args) == 0) {
 dat_filename = args[1]
 
 
+## or use argparse:
+
+suppressPackageStartupMessages(library("argparse"))
+
+parser = ArgumentParser()
+parser$add_argument("--dat", help="input data file", required=TRUE)
+args = parser$parse_args()
+dat_filename = args$dat
 
 
-write(cat("message about varname: :", varname), stderr())
+write(cat("message about varname: ", varname), stderr())
+or
+message("message about varname: ", varname)
+
+
 
 quit(save = "no", status = 0, runLast = FALSE)
 
