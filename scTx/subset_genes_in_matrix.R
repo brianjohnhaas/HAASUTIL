@@ -4,8 +4,8 @@ suppressPackageStartupMessages(library("argparse"))
 
 parser = ArgumentParser()
 parser$add_argument("--matrix", help="Rdata file", required=TRUE)
-parser$add_argument("--min_rowcounts", type="integer", help="max number of genes per cell (remove doublets)", required=TRUE)
-parser$add_argument("--min_gene_prevalence", type="integer", help="min number of cells a gene must be expressed in", required=TRUE)
+parser$add_argument("--min_gene_counts", type="integer", help="Filter Cells: min number of genes per cell", required=TRUE)
+parser$add_argument("--min_gene_prevalence", type="integer", help="Filter Genes: min number of cells a gene must be expressed in", required=TRUE)
 parser$add_argument("--data_start_col_index", type="integer", help="column at which cell counts begin (gene field at column zero)", default=1)
 
 
@@ -25,17 +25,21 @@ data = data.matrix(data)
 
 message("number of genes at init: ", nrow(data))
 
-# filter based on gene prevalence 
+# filter based on gene prevalence  (number of cells expressing gene)
 gene_prevalence = apply(data, 1, function(x) { sum(x > 0) } )
 
 data = data[gene_prevalence >= args$min_gene_prevalence,]
 
 message("Num genes after gene prevalence filter: ", nrow(data))
 
-# filter based on min rowcounts
-data = data[rowSums(data, na.rm=T) >= args$min_rowcounts,]
+# filter cells based on number of genes expressed
 
-message("Num genes after further applying min rowcounts: ", nrow(data))
+genes_expressed_per_cell = apply(data, 2, function(x) { sum(x>0) } )
+
+data = data[,genes_expressed_per_cell >= args$min_gene_counts]
+
+message("Number of cells after applying min gene count: ", ncol(data))
+
 
 new_matrix_filename = paste(args$matrix, ".filtered.matrix", sep='')
 write.table(data, file=new_matrix_filename, sep="\t", quote=F)
