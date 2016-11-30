@@ -15,8 +15,13 @@ dat_filename = args[1]
 suppressPackageStartupMessages(library("argparse"))
 
 parser = ArgumentParser()
-parser$add_argument("--dat", help="input data file", required=TRUE)
+parser$add_argument("--dat", help="input data file", required=TRUE, nargs=1)
+parser$add_argument("--somenum", type="integer", help="some integer", required=TRUE)
+parser$add_argument("-v", "--verbose", action="store_true", default=TRUE,
+                    help="Print extra output [default]")
+
 args = parser$parse_args()
+
 dat_filename = args$dat
 
 
