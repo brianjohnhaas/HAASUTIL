@@ -41,10 +41,9 @@ data = data[,genes_expressed_per_cell >= args$min_gene_counts]
 message("Number of cells after applying min gene count: ", ncol(data))
 
 
-new_matrix_filename = paste(args$matrix, ".filtered.matrix", sep='')
+new_matrix_filename = paste0(args$matrix, ".filtered", ".minGPC", args$min_gene_counts, ".minCPG", args$min_gene_prevalence, ".matrix")
 write.table(data, file=new_matrix_filename, sep="\t", quote=F)
 
 message("Done, see file:", new_matrix_filename)
-
 
 
