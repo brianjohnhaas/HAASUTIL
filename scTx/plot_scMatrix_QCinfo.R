@@ -41,8 +41,13 @@ stripchart(complexity.per.cell, add = TRUE, vertical = TRUE, method = "jitter", 
 message("plotting genes vs. total reads per cell")
 total.reads.per.cell = colSums(data)
 
-plot(complexity.per.cell, total.reads.per.cell, main='gene count vs. total reads per cell')
+plot(complexity.per.cell, total.reads.per.cell, main='gene count vs. total reads per cell', xlab='genes/cell', ylab='reads/cell')
 
+
+
+##############################
+## plot genes expressed, ordered by abundance
+plot(complexity.per.cell[rev(order(complexity.per.cell))], main='genes expressed per cell', xlab='cell by desc count of genes', ylab='num genes expr', log='x')
 
 
 
@@ -54,7 +59,7 @@ message("computing gene.prevalence")
 gene.prevalence = apply(log2data, 1, function(x) { sum(x>0) } )
 
 message("Generating gene.prevalence stripchart")
-hist(log2(gene.prevalence+1), col='green', main='gene prevalence')
+hist(log2(gene.prevalence+1), col='green', main='gene prevalence', xlab='bin log2(num cells)', ylab='num of expr genes', main='hist of num genes expressed by number of cells')
 
 
 dev.off()
