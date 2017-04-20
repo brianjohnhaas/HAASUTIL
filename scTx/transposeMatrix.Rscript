@@ -1,0 +1,16 @@
+#!/usr/bin/env Rscript
+
+args<-commandArgs(TRUE)
+
+if (length(args) != 2) {
+    stop("require param: file.input.matrix file.output.matrix")
+}
+
+input_matrix_filename = args[1]
+output_matrix_filename = args[2]
+
+data = read.table(input_matrix_filename, header=T, row.names=1)
+
+write.table(t(data), file=output_matrix_filename, quote=F, sep='\t')
+
+
