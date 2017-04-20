@@ -1,35 +1,46 @@
 #!/usr/bin/env Rscript
 
-args<-commandArgs(TRUE)
+options(stringsAsFactors = FALSE)
 
-if (length(args) == 0) {
-	stop("require param: dat_filename")
+
+main = function () {
+    
+    args<-commandArgs(TRUE)
+    
+    if (length(args) == 0) {
+        stop("require param: dat_filename")
+    }
+    
+    
+    dat_filename = args[1]
+    
+    
+    ## or use argparse:
+    
+    suppressPackageStartupMessages(library("argparse"))
+    
+    parser = ArgumentParser()
+    parser$add_argument("--dat", help="input data file", required=TRUE, nargs=1)
+    parser$add_argument("--somenum", type="integer", help="some integer", required=TRUE)
+    parser$add_argument("-v", "--verbose", action="store_true", default=TRUE,
+                        help="Print extra output [default]")
+    
+    args = parser$parse_args()
+    
+    dat_filename = args$dat
+    
+    
+    write(cat("message about varname: ", varname), stderr())
+    or
+    message("message about varname: ", varname)
+    
+    
+    
+    quit(save = "no", status = 0, runLast = FALSE)
+
 }
 
 
-dat_filename = args[1]
-
-
-## or use argparse:
-
-suppressPackageStartupMessages(library("argparse"))
-
-parser = ArgumentParser()
-parser$add_argument("--dat", help="input data file", required=TRUE, nargs=1)
-parser$add_argument("--somenum", type="integer", help="some integer", required=TRUE)
-parser$add_argument("-v", "--verbose", action="store_true", default=TRUE,
-                    help="Print extra output [default]")
-
-args = parser$parse_args()
-
-dat_filename = args$dat
-
-
-write(cat("message about varname: ", varname), stderr())
-or
-message("message about varname: ", varname)
-
-
-
-quit(save = "no", status = 0, runLast = FALSE)
-
+if (length(sys.calls())==0) {
+    main()
+}
