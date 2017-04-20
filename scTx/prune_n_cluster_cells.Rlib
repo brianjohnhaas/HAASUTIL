@@ -15,7 +15,15 @@
 
 #args = parser$parse_args()
 
-run_seurat = function(rdata_file, min_gene_prevalence=3, min_complexity=1, max_complexity=20000) {
+run_seurat = function(rdata_file,
+                      min_gene_prevalence=3,
+                      min_complexity=1,
+                      max_complexity=20000,
+                      var_x_low_cutoff = 0.0125,
+                      var_x_high_cutoff = 3,
+                      var_y_cutoff = 0.5,
+                      pca_dims_use = 20,
+                      cluster_resolution = 0.6) {
 
 
 	ext = new.env()
@@ -24,19 +32,33 @@ run_seurat = function(rdata_file, min_gene_prevalence=3, min_complexity=1, max_c
 
 	library("Seurat")
 
-	pdf_filename = paste(rdata_file, ".seurat.pdf", sep='')
+    filename_prefix = paste0(rdata_file, '.mgp', min_gene_prevalence,
+                             '.minG', min_complexity,
+                             '.maxG', max_complexity,
+                             '.var_x_low', var_x_low_cutoff,
+                             '.var_x_high', var_x_high_cutoff,
+                             '.var_y_cutoff', var_y_cutoff,
+                             '.pcaDims', pca_dims_use,
+                             '.clustRes', cluster_resolution)
+                             
+    
+	pdf_filename = paste0(filename_prefix, ".seurat.pdf")
 	pdf(pdf_filename)
 
 	sc = methods::new("seurat", raw.data=ext$log2data)
-	sc = Setup(sc, project="SingleCell", min.cells=min_gene_prevalence, min.genes=min_complexity, do.logNormalize = F, total.expr = 1e4)
-	sc = SubsetData(sc, subset.name="nGene", accept.high=max_complexity)
+	sc = Setup(sc, project="SingleCell", min.cells=min_gene_prevalence,
+               min.genes=min_complexity, do.logNormalize = F, total.expr = 1e4)
 
+	sc = SubsetData(sc, subset.name="nGene", accept.high=max_complexity)
+    
  	## get variable genes
-	sc = MeanVarPlot(sc, fxn.x = expMean, fxn.y = logVarDivMean, x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 0.5, do.contour = F)
+	sc = MeanVarPlot(sc, fxn.x = expMean, fxn.y = logVarDivMean,
+                     x.low.cutoff = var_x_low_cutoff, x.high.cutoff = var_x_high_cutoff,
+                     y.cutoff = var_y_cutoff, do.contour = F)
 
 	num_var_genes = length(sc@var.genes)
 	message(sprintf("Number of variable genes: %s", num_var_genes))
-
+    
 	sc = PCA(sc, pc.genes = sc@var.genes, do.print = TRUE, pcs.print = 5, genes.print = 5)
 
 	sc = ProjectPCA(sc)
@@ -53,19 +75,25 @@ run_seurat = function(rdata_file, min_gene_prevalence=3, min_complexity=1, max_c
 
     # choose the PCs to use for clustering
 	PCElbowPlot(sc)
-
+    
+    
  	# find clusters
-	sc <- FindClusters(sc, pc.use = 1:10, resolution = 0.6, print.output = 0, save.SNN = T)
-
+	sc <- FindClusters(sc, pc.use = 1:pca_dims_use, resolution = cluster_resolution, print.output = 0, save.SNN = T)
+    
 	# run TSNE
-	sc <- RunTSNE(sc, dims.use = 1:10, do.fast = T)
+	sc <- RunTSNE(sc, dims.use = 1:pca_dims_use, do.fast = T)
 
 	TSNEPlot(sc)
+    
+    # color by number of genes
+    FeaturePlot(sc, c("nGene"), cols.use = c("green", "blue"))
 
+    dev.off()
+    
 	message("saving seurat obj for later reuse");
-	save(sc, file="seurat.obj")
+	save(sc, file=paste0(filename_prefix, ".seurat.obj"))
+    
 
-	dev.off()
 
 }
 
