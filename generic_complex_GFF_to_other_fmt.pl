@@ -337,8 +337,8 @@ sub extend_UTRs {
     my @exons = $gene_obj->get_exons();
     
     my $first_exon = $exons[0];
-    my $last_exon = $exons[1]; # ok to be the same as first if single exon
-
+    my $last_exon = $exons[$#exons]; # ok to be the same as first if single exon
+    
     if ($gene_obj->get_orientation() eq '+') {
         
         $first_exon->{end5} -= $extend_len;
