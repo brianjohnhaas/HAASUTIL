@@ -59,12 +59,10 @@ sub parse_matrix {
     my $header = <$fh>;
     chomp $header;
     my @cells = split(/\t/, $header);
-    if ($cells[0] =~ /\w/) {
-        die "Error, header of matrix should have a first empty cell";
+    if ($cells[0] !~ /\w/) {
+        shift @cells;
     }
-
-    shift @cells;
-
+    
     # add label to cells
     foreach my $cell (@cells) {
         $cell = "$label" . "_" . $cell;

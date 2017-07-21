@@ -75,15 +75,18 @@ run_seurat = function(rdata_file,
 
     # choose the PCs to use for clustering
 	PCElbowPlot(sc)
+
+    # run TSNE
+	sc <- RunTSNE(sc, dims.use = 1:pca_dims_use, do.fast = T)
+
     
+	TSNEPlot(sc)
     
  	# find clusters
 	sc <- FindClusters(sc, pc.use = 1:pca_dims_use, resolution = cluster_resolution, print.output = 0, save.SNN = T)
-    
-	# run TSNE
-	sc <- RunTSNE(sc, dims.use = 1:pca_dims_use, do.fast = T)
 
-	TSNEPlot(sc)
+    # color tsne according to clusters
+    TSNEPlot(sc)
     
     # color by number of genes
     FeaturePlot(sc, c("nGene"), cols.use = c("green", "blue"))
