@@ -16,8 +16,6 @@ library(vioplot)
 
 message("Reading matrix")
 data = read.table(matrix_filename, header=T, row.names=1)
-log2data = log2(data+1)
-
 
 
 pdf(pdf_filename)
@@ -27,7 +25,7 @@ pdf(pdf_filename)
 ##  Complexity per cell:  number of expressed genes per cell (points are cells)
 
 message("computing complexity.per.cell")
-complexity.per.cell = apply(log2data, 2, function(x) { sum(x>0) } )
+complexity.per.cell = apply(data, 2, function(x) { sum(x>=1) } )
 
 message("Generating complexity.per.cell stripchart")
 vioplot(complexity.per.cell)
@@ -54,7 +52,7 @@ plot(complexity.per.cell[rev(order(complexity.per.cell))], main='genes expressed
 
 
 message("computing gene.prevalence")
-gene.prevalence = apply(log2data, 1, function(x) { sum(x>0) } )
+gene.prevalence = apply(data, 1, function(x) { sum(x>=1) } )
 
 
 message("Generating gene.prevalence stripchart")
