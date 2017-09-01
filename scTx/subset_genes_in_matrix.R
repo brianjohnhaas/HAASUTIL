@@ -26,7 +26,7 @@ data = data.matrix(data)
 message("number of genes at init: ", nrow(data))
 
 # filter based on gene prevalence  (number of cells expressing gene)
-gene_prevalence = apply(data, 1, function(x) { sum(x > 0) } )
+gene_prevalence = apply(data, 1, function(x) { sum(x >= 1) } )
 
 data = data[gene_prevalence >= args$min_gene_prevalence,]
 
@@ -34,11 +34,20 @@ message("Num genes after gene prevalence filter: ", nrow(data))
 
 # filter cells based on number of genes expressed
 
-genes_expressed_per_cell = apply(data, 2, function(x) { sum(x>0) } )
+genes_expressed_per_cell = apply(data, 2, function(x) { sum(x >= 1) } )
 
 data = data[,genes_expressed_per_cell >= args$min_gene_counts]
 
 message("Number of cells after applying min gene count: ", ncol(data))
+
+
+# Re-filter based on gene prevalence  (number of cells expressing gene), now that cells were removed.
+gene_prevalence = apply(data, 1, function(x) { sum(x >= 1) } )
+
+data = data[gene_prevalence >= args$min_gene_prevalence,]
+
+message("Num genes after gene prevalence filter: ", nrow(data))
+
 
 
 new_matrix_filename = paste0(args$matrix, ".filtered", ".minGPC", args$min_gene_counts, ".minCPG", args$min_gene_prevalence, ".matrix")
