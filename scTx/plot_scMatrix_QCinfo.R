@@ -16,8 +16,6 @@ library(vioplot)
 
 message("Reading matrix")
 data = read.table(matrix_filename, header=T, row.names=1)
-log2data = log2(data+1)
-
 
 
 pdf(pdf_filename)
@@ -26,13 +24,13 @@ pdf(pdf_filename)
 ###############################################################################
 ##  Complexity per cell:  number of expressed genes per cell (points are cells)
 
-message("computing complexity.per.cell")
-complexity.per.cell = apply(log2data, 2, function(x) { sum(x>0) } )
+message("computing genes.per.cell")
+genes.per.cell = apply(data, 2, function(x) { sum(x>=1) } )
 
-message("Generating complexity.per.cell stripchart")
-vioplot(complexity.per.cell)
+message("Generating genes.per.cell stripchart")
+vioplot(genes.per.cell)
 title('complexity per cell')
-stripchart(complexity.per.cell, add = TRUE, vertical = TRUE, method = "jitter", jitter = 0.3, pch = '.')
+stripchart(genes.per.cell, add = TRUE, vertical = TRUE, method = "jitter", jitter = 0.3, pch = '.')
 
 
 ################################################
@@ -41,20 +39,21 @@ stripchart(complexity.per.cell, add = TRUE, vertical = TRUE, method = "jitter", 
 message("plotting genes vs. total reads per cell")
 total.reads.per.cell = colSums(data)
 
-plot(complexity.per.cell, total.reads.per.cell, main='gene count vs. total reads per cell', xlab='genes/cell', ylab='reads/cell')
+#plot(genes.per.cell, total.reads.per.cell, main='gene count vs. total reads per cell', xlab='genes/cell', ylab='reads/cell')
+plot(total.reads.per.cell, genes.per.cell, main='gene count vs. total reads per cell', ylab='genes/cell', xlab='reads/cell')
 
 
 
 ##############################
 ## plot genes expressed, ordered by abundance
-plot(complexity.per.cell[rev(order(complexity.per.cell))], main='genes expressed per cell', xlab='cell by desc count of genes', ylab='num genes expr', log='x')
+plot(genes.per.cell[rev(order(genes.per.cell))], main='genes expressed per cell', xlab='cell by desc count of genes', ylab='num genes expr', log='x')
 
 ###############################################################################
 ##  Gene prevalence:  number of cells expressing each gene.  (points are genes)
 
 
 message("computing gene.prevalence")
-gene.prevalence = apply(log2data, 1, function(x) { sum(x>0) } )
+gene.prevalence = apply(data, 1, function(x) { sum(x>=1) } )
 
 
 message("Generating gene.prevalence stripchart")
