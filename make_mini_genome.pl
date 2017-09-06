@@ -11,7 +11,8 @@ use Nuc_translator;
 use Overlap_piler;
 use Data::Dumper;
 
-my $max_intron_length = 500;
+my $max_intron_length = 5000;
+my $min_intron_length = 200;
 my $genome_flank_size = 1000;
 
 my $out_prefix = "minigenome";
@@ -31,11 +32,14 @@ my $usage = <<__EOUSAGE__;
 #
 #  --shrink_introns
 #
-#  --max_intron_length <int>        default: max_intron_length  (only when --shrink_introns used)
+#  --min_intron_length <int>        default: $min_intron_length (only when --shrink_introns_used)
+#  --max_intron_length <int>        default: $max_intron_length  (only when --shrink_introns used)
 #
 #  --genome_flank <int>             amt. of genomic sequence to extract flanking each gene (default: $genome_flank_size)
 #
 #  --out_prefix <string>            output prefix for output files (gtf and fasta) default: ${out_prefix}
+#
+#  --accs_restrict_file <string>    file containing lists of gene or transcript identifiers to restrict to
 #
 ###############################################################################################
 
@@ -49,6 +53,7 @@ my $help_flag;
 my $gtf_file;
 my $genome_fasta_file;
 my $shrink_introns_flag = 0;
+my $accs_restrict_file = "";
 
 &GetOptions ( 'h' => \$help_flag,
               
@@ -56,12 +61,15 @@ my $shrink_introns_flag = 0;
               'genome_fa=s' => \$genome_fasta_file,
 
               'shrink_introns' => \$shrink_introns_flag,
+              'min_intron_length=i' => \$min_intron_length,
               'max_intron_length=i' => \$max_intron_length,
               'genome_flank=i' => \$genome_flank_size,
               
               'out_prefix=s' => \$out_prefix,
-              
 
+              'accs_restrict_file=s' => \$accs_restrict_file,
+              
+              
     );
 
 
@@ -75,6 +83,20 @@ unless ($gtf_file && $genome_fasta_file) {
 
 main: {
 
+    my %RESTRICT;
+
+    if ($accs_restrict_file) {
+        open(my $fh, $accs_restrict_file) or die $!;
+        while (<$fh>) {
+            chomp;
+            my @x = split(/\s+/);
+            foreach my $acc (@x) {
+                $RESTRICT{$acc} = 1;
+            }
+        }
+        close $fh;
+    }
+    
     
     my %gene_to_gtf = &extract_gene_gtfs($gtf_file);
 
@@ -99,6 +121,14 @@ main: {
                                 
         my $gene_gtf = $gene_struct->{gtf};
 
+
+        if (%RESTRICT) {
+
+            unless (&includes_restricted_id($gene_gtf, \%RESTRICT)) {
+                next;
+            }
+        }
+                
         my ($gene_supercontig_gtf, $gene_sequence_region) = &get_gene_contig_gtf($gene_gtf, $genome_fasta_file);
         
         ($gene_supercontig_gtf, $gene_sequence_region) = &shrink_introns($gene_supercontig_gtf, $gene_sequence_region, $max_intron_length);
@@ -201,13 +231,13 @@ sub shrink_introns {
 
         my $intron_length = $curr_pile_struct->{pile_lend} - $prev_pile_struct->{pile_rend} - 1;
         if ($intron_length > $max_intron_length) {
-            $intron_length = $max_intron_length;
+            $intron_length = $min_intron_length + int(rand($max_intron_length - $min_intron_length));
         }
         $curr_pile_struct->{new_pile_lend} = $prev_pile_struct->{new_pile_rend} + $intron_length + 1;
         $curr_pile_struct->{new_pile_rend} = $curr_pile_struct->{new_pile_lend} + $curr_pile_struct->{pile_length} - 1;
         
     }
-
+    
     ## adjust gtf exon coordinates
     
     my $gtf_adj = "";
@@ -367,21 +397,6 @@ sub extract_gene_gtfs {
         if (/gene_id \"([^\"]+)\"/) {
             $gene_id = $1;
         }
-        if (/gene_name \"([^\"]+)\"/) {
-            $gene_name = $1;
-            
-            if ($gene_id) {
-                # for viewing purposes
-                $line =~ s/$gene_id/$gene_name\^$gene_id/;
-            }
-        }
-
-        
-        # define a gene identifier to use in downstream processes
-        # use the ID given by the user
-        my $gene_id_use = ($gene_want_href->{$gene_id}) ? $gene_id : $gene_name;
-        
-        $line .= " FI_gene_label \"$gene_id_use\";";
         
         my $chr = $x[0];
         my $lend = $x[3];
@@ -534,6 +549,7 @@ sub make_gene_info_structs {
                        rend => $max_rend,
                        orient => $orient,
                        gtf => $revised_gene_gtf_text,
+                       gene => $gene,
         };
 
         push (@gene_structs, $struct);
@@ -541,3 +557,34 @@ sub make_gene_info_structs {
 
     return(@gene_structs);
 }
+
+
+####
+sub includes_restricted_id {
+    my ($gene_gtf, $restrict_href) = @_;
+
+    $gene_gtf =~ /gene_id \"([^\"]+)\"/ or die "Error, cannot extract gene_id from $gene_gtf";
+    my $gene_id = $1;
+
+    if ($restrict_href->{$gene_id}) {
+        return(1);
+    }
+
+    if ($gene_gtf =~ /gene_name \"([^\"]+)\"/) {
+        my $gene_name = $1;
+        if ($restrict_href->{$gene_name}) {
+            return(1);
+        }
+    }
+    
+    while ($gene_gtf =~ /transcript_id \"([^\"]+)\"/g) {
+        my $tx_id = $1;
+        if ($restrict_href->{$tx_id}) {
+            return(1);
+        }
+    }
+
+    return(0);
+}
+
+
