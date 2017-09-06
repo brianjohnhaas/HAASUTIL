@@ -142,6 +142,8 @@ main: {
         $supercontig .= $gene_sequence_region;
         
         my $out_gtf = &set_gtf_scaffold_name("minigenome", $gene_supercontig_gtf);
+
+        #$out_gtf = &include_gene_name_in_gene_id($out_gtf);
         
         print $out_gtf_ofh $out_gtf;
         
@@ -233,6 +235,7 @@ sub shrink_introns {
         if ($intron_length > $max_intron_length) {
             $intron_length = $min_intron_length + int(rand($max_intron_length - $min_intron_length));
         }
+        # set new relative coordinates for exon based on adjusted intron length
         $curr_pile_struct->{new_pile_lend} = $prev_pile_struct->{new_pile_rend} + $intron_length + 1;
         $curr_pile_struct->{new_pile_rend} = $curr_pile_struct->{new_pile_lend} + $curr_pile_struct->{pile_length} - 1;
         
@@ -244,6 +247,7 @@ sub shrink_introns {
     my $gene_seq_adj = "";
     
     my $prev_old_pile_rend = 0;
+    my $prev_new_pile_rend = 0;
     
     foreach my $pile_struct (@pile_structs) {
         
@@ -254,27 +258,35 @@ sub shrink_introns {
         my $delta = $old_pile_lend - $new_pile_lend;
         
         ## add intron
-        my $intron_len = $old_pile_lend - $prev_old_pile_rend -1;
+        my $original_intron_len = $old_pile_lend - $prev_old_pile_rend -1;
+        my $adj_intron_len = $new_pile_lend - $prev_new_pile_rend - 1;
+        if ($adj_intron_len > $max_intron_length) {
+            die "Error, intron length ($adj_intron_len) exceeds max of $max_intron_length";
+        }
         my $intron_seq = "";
-        if ($prev_old_pile_rend == 0 || $intron_len < $max_intron_length) {
-            $intron_seq = substr($gene_seq_region, $prev_old_pile_rend, $intron_len);
+        if ($prev_old_pile_rend == 0 || $original_intron_len < $max_intron_length) {
+            # use existing intron
+            unless ($original_intron_len == $adj_intron_len) {
+                die "Error, original short intron length is not equivalent to the adjusted intron length setting";
+            }
+            $intron_seq = substr($gene_seq_region, $prev_old_pile_rend, $original_intron_len);
         }
         else {
             ## split the difference
-            my $left_intron_size = int($max_intron_length/2);
-            my $right_intron_size = $max_intron_length - $left_intron_size;
+            my $left_intron_size = int($adj_intron_len/2);
+            my $right_intron_size = $adj_intron_len - $left_intron_size;
             $left_intron_size -= 5;
             $right_intron_size -= 5; # add 10 Ns at center
             $intron_seq = substr($gene_seq_region, $prev_old_pile_rend, $left_intron_size);
             $intron_seq .= 'N' x 10;
             $intron_seq .= substr($gene_seq_region, $old_pile_lend - 1 - $right_intron_size, $right_intron_size);
             
-            if (length($intron_seq) != $max_intron_length) {
-                die "Error, intron length is off: " . length($intron_seq) . " vs. $max_intron_length (max)";
+            if (length($intron_seq) != $adj_intron_len) {
+                die "Error, intron length is off: " . length($intron_seq) . " vs. $adj_intron_len (adjusted)";
             }
         }
         $gene_seq_adj .= $intron_seq;
-
+        
         foreach my $gtf_row_aref (@{$pile_struct->{pile}}) {
             
             $gtf_row_aref->[3] -= $delta;
@@ -287,7 +299,7 @@ sub shrink_introns {
         $gene_seq_adj .= $pile_seq;
 
         $prev_old_pile_rend = $pile_struct->{pile_rend};
-        
+        $prev_new_pile_rend = $pile_struct->{new_pile_rend};
     }
     
     ## tack on end of sequence
@@ -309,8 +321,8 @@ sub set_gtf_scaffold_name {
         my @x = split(/\t/, $line);
         $x[0] = $scaffold_name;
         
-        $x[8] =~ s/transcript_id \"/transcript_id \"$scaffold_name\^/;
-        $x[8] =~ s/gene_id \"/gene_id \"$scaffold_name\^/;
+        #$x[8] =~ s/transcript_id \"/transcript_id \"$scaffold_name\^/;
+        #$x[8] =~ s/gene_id \"/gene_id \"$scaffold_name\^/;
         
         $new_gtf .= join("\t", @x) . "\n";
     }
@@ -393,7 +405,6 @@ sub extract_gene_gtfs {
         unless ($feat_type =~ /^(exon|CDS)$/) { next; } # only exon and CDS records
 
         my $gene_id = "";
-        my $gene_name = "";
         if (/gene_id \"([^\"]+)\"/) {
             $gene_id = $1;
         }
@@ -403,16 +414,22 @@ sub extract_gene_gtfs {
         my $rend = $x[4];
         my $orient = $x[6];
         
-        my $orig_info = "$chr,$lend,$rend,$orient";
+        my $orig_info = "$chr,$gene_id,$lend,$rend,$orient";
+
+        ## replace gene_id with gene_name
+        if ($line =~ /gene_name \"([^\"]+)\"/) {
+            my $gene_name = $1;
+            $line =~ s/gene_id \"\Q$gene_id\E\"/gene_id \"$gene_name\"/;
+            $gene_id = $gene_name;
+
+            $line =~ s/transcript_id \"/transcript_id \"$gene_name^/;
+            
+        }
+        
         $line .= " orig_coord_info \"$orig_info\";\n";
         
         $gene_to_gtf{$gene_id} .= $line;
-            
-        
-        if ($gene_name && $gene_name ne $gene_id) {
-            $gene_to_gtf{$gene_name} .= $line;
-        }
-        
+                
     }
     close $fh;
 
@@ -587,4 +604,30 @@ sub includes_restricted_id {
     return(0);
 }
 
+
+####
+sub include_gene_name_in_gene_id {
+    my ($gene_gtf) = @_;
+
+    
+    if ($gene_gtf =~ /gene_name \"([^\"]+)\"/) {
+        my $gene_name = $1;
+
+        $gene_gtf =~ /gene_id \"([^\"]+)\"/ or die "Error, not extracting gene_id from $gene_gtf";
+        my $gene_id = $1;
+
+        #print "Gene_name: $gene_name, gene_id: $gene_id\n";
+
+        #print "Before: $gene_gtf\n";
+        #$gene_gtf =~ s/gene_id \"${gene_id}/gene_id \"${gene_name}\^${gene_id}/g or die "Error, no name update for $gene_gtf";
+        $gene_gtf =~ s/gene_id \"\Q${gene_id}\E\"/gene_id \"$gene_name^$gene_id\"/g or die "Error, no name update for $gene_gtf";
+        #print "After: $gene_gtf\n\n";
+        
+    }
+    
+            
+
+    return($gene_gtf);
+
+}
 
