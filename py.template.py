@@ -7,7 +7,8 @@ import os, sys, re
 import logging
 import argparse
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+FORMAT = "%(asctime)-15s: %(message)s"
+logging.basicConfig(stream=sys.stderr, format=FORMAT, level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
