@@ -83,14 +83,14 @@ def main():
 
     # store sequence hashes in hash table
     print("hashing seq1...")
-    for i in xrange(len(seq1) - kmerlen + 1):
+    for i in range(len(seq1) - kmerlen + 1):
         key = seq1[i:i+kmerlen]
         lookup[key].append(i)
 
     # look up hashes in hash table
     print("hashing seq2...")
     hits = []
-    for i in xrange(len(seq2) - kmerlen + 1):
+    for i in range(len(seq2) - kmerlen + 1):
         key = seq2[i:i+kmerlen]
 
         # store hits to hits list
