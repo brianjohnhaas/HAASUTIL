@@ -59,7 +59,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="dotplotter based on kmers", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--seq1", dest="seq1_file", type=str, default="", required=True, help="seq1")
-    parser.add_argument("--seq2", dest="seq2_file", type=str, default="", required=True, help="seq2")
+    parser.add_argument("--seq2", dest="seq2_file", type=str, default=None, required=False, help="seq2 (if not set, defaults to seq1)")
     parser.add_argument("-K", dest="kmerlen", type=int, default=25, help="kmer length")
     parser.add_argument("--plot_file", dest="plot_file", type=str, default="dotplot.png", help="name of dotplot file")
 
@@ -67,6 +67,9 @@ def main():
 
     seq1_file = args.seq1_file
     seq2_file = args.seq2_file
+    if seq2_file is None:
+        seq2_file = seq1_file
+    
     kmerlen = args.kmerlen
     plotfile = args.plot_file
     
@@ -102,7 +105,7 @@ def main():
         revcomp_key = str(seq.reverse_complement())
         #print("revcompkey: {}".format(revcomp_key))
         for hit in lookup.get(revcomp_key, []):
-            print("Found revcomp hit: {}".format(hit))
+            #print("Found revcomp hit: {}".format(hit))
             hits.append((i, hit))
     
     # hits should be a list of tuples
