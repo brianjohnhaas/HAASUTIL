@@ -20,11 +20,9 @@ my %acc_to_coords;
 open(my $fh, $coords_file);
 while(my $line = <$fh>) {
     chomp $line;
-    unless ($line =~ /^\d/) {
-        next;
-    }
     my @x = split(/\t/, $line);
-    
+
+    unless (scalar(@x) >= 3) { next; }
     
     my $contig_acc = $x[0];
     my $begin = int($x[1]);
@@ -41,6 +39,7 @@ while (my $seq_obj = $fasta_reader->next()) {
     my $accession = $seq_obj->get_accession();
     
     if (exists $acc_to_coords{$accession}) {
+        print STDERR "-performing masking on $accession\n";
         my @coords = @{$acc_to_coords{$accession}};
         @coords = &Overlap_piler::simple_coordsets_collapser(@coords);
         
