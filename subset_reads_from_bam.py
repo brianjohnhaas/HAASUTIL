@@ -56,6 +56,7 @@ def main():
         for line in fh:
             line = line.rstrip()
             read_name = line
+            read_names_want.add(read_name)
 
     logger.info(
         "-read {} read_names from {}".format(len(read_names_want), accs_filename)
